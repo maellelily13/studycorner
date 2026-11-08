@@ -1,1 +1,504 @@
 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study Corner 🤎</title>
+
+<style>
+:root {
+  --cream: #f8f1e9;
+  --beige: #eadbcb;
+  --brown: #684638;
+  --terracotta: #b97865;
+  --rose: #c99591;
+  --white: #fffaf5;
+  --text: #604a40;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 25px 16px 45px;
+  background: var(--cream);
+  color: var(--text);
+  font-family: Georgia, serif;
+}
+
+.container {
+  max-width: 650px;
+  margin: auto;
+}
+
+header {
+  text-align: center;
+  padding: 25px 10px 30px;
+}
+
+h1 {
+  color: var(--brown);
+  font-size: 38px;
+  margin: 0 0 8px;
+}
+
+.subtitle {
+  color: var(--terracotta);
+  font-style: italic;
+}
+
+.card {
+  background: var(--white);
+  border: 1px solid var(--beige);
+  border-radius: 18px;
+  padding: 22px;
+  margin-bottom: 19px;
+  box-shadow: 0 4px 15px #6846380b;
+}
+
+h2 {
+  color: var(--terracotta);
+  font-size: 21px;
+  margin-top: 0;
+}
+
+.balance {
+  text-align: center;
+  background: var(--beige);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.balance-number {
+  font-size: 43px;
+  font-weight: bold;
+  color: var(--brown);
+  margin: 8px 0;
+}
+
+.small {
+  font-size: 13px;
+  opacity: .8;
+}
+
+.timer { text-align: center; }
+
+.time {
+  font-size: 58px;
+  font-weight: bold;
+  color: var(--brown);
+  margin: 15px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 15px 0;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  border-radius: 12px;
+  padding: 11px 15px;
+  background: var(--beige);
+  color: var(--brown);
+  font-size: 14px;
+}
+
+button.selected {
+  background: var(--terracotta);
+  color: white;
+}
+
+.main-button {
+  background: var(--brown);
+  color: white;
+  padding: 13px 27px;
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+.stop-button {
+  background: #e8d0ca;
+  margin-left: 5px;
+}
+
+input {
+  width: 75px;
+  padding: 9px;
+  border: 1px solid var(--beige);
+  border-radius: 9px;
+  background: white;
+  color: var(--brown);
+  font-size: 15px;
+  text-align: center;
+}
+
+.shop-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--beige);
+}
+
+.shop-item:last-child { border-bottom: none; }
+
+.shop-price {
+  color: var(--terracotta);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.buy-button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+  gap: 10px;
+}
+
+.stat-number {
+  font-size: 22px;
+  color: var(--brown);
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.history-item {
+  padding: 11px 0;
+  border-bottom: 1px solid var(--beige);
+  font-size: 14px;
+}
+
+.empty {
+  font-style: italic;
+  opacity: .65;
+  font-size: 14px;
+}
+
+footer {
+  text-align: center;
+  color: var(--terracotta);
+  font-size: 13px;
+  padding-top: 12px;
+}
+
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<header>
+  <h1>Study Corner 🤎</h1>
+  <div class="subtitle">My little study space ✧</div>
+</header>
+
+<section class="card balance">
+  <div>⭐ MES POINTS</div>
+  <div class="balance-number" id="balance">0</div>
+  <div class="small">Points disponibles</div>
+</section>
+
+<section class="card timer">
+  <h2>⏳ Mon minuteur</h2>
+
+  <div class="presets" id="presets">
+    <button data-min="5">5 min</button>
+    <button data-min="10">10 min</button>
+    <button data-min="15">15 min</button>
+    <button data-min="20">20 min</button>
+    <button data-min="30">30 min</button>
+    <button data-min="45">45 min</button>
+  </div>
+
+  <div class="small">Ou choisir une durée personnalisée :</div>
+  <p>
+    <input type="number" id="custom" min="1" max="300" placeholder="Min">
+    <button id="customButton">Choisir</button>
+  </p>
+
+  <div class="time" id="time">05:00</div>
+  <div class="small" id="timerMessage">
+    Choisis ta durée et lance ton chrono !
+  </div>
+
+  <button class="main-button" id="start">Commencer</button>
+  <button class="stop-button" id="stop">Arrêter</button>
+
+  <p class="small" id="gain"></p>
+</section>
+
+<section class="card">
+  <h2>🛍️ Ma petite boutique</h2>
+  <div id="shop"></div>
+</section>
+
+<section class="card">
+  <h2>📊 Mes statistiques</h2>
+  <div class="stats">
+    <div>
+      <div class="stat-number" id="earned">0</div>
+      <div class="small">Gagnés</div>
+    </div>
+    <div>
+      <div class="stat-number" id="spent">0</div>
+      <div class="small">Dépensés</div>
+    </div>
+    <div>
+      <div class="stat-number" id="sessions">0</div>
+      <div class="small">Sessions</div>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>📖 Mon historique</h2>
+  <div id="history">
+    <p class="empty">Aucune activité pour le moment.</p>
+  </div>
+</section>
+
+<footer>
+  ✧ A little progress every day ✧
+</footer>
+
+</div>
+
+<script>
+const RATE = 0.6;
+
+const rewards = [
+  { name: "🍬 1 snack", price: 5 },
+  { name: "💆 Massage des mains", price: 15 },
+  { name: "☕ 15 min de pause", price: 30 },
+  { name: "🎬 1 épisode de série", price: 45 },
+  { name: "🎮 45 min de jeux vidéo", price: 75 }
+];
+
+let data = JSON.parse(
+  localStorage.getItem("studyCorner") || "null"
+) || {
+  balance: 0,
+  earned: 0,
+  spent: 0,
+  sessions: 0,
+  history: []
+};
+
+let duration = 5;
+let remaining = 300;
+let endTime = null;
+let interval = null;
+let running = false;
+
+const $ = id => document.getElementById(id);
+
+function save() {
+  localStorage.setItem("studyCorner", JSON.stringify(data));
+}
+
+function formatPoints(n) {
+  return Number(n.toFixed(1)).toString().replace(".", ",");
+}
+
+function render() {
+  $("balance").textContent = formatPoints(data.balance);
+  $("earned").textContent = formatPoints(data.earned);
+  $("spent").textContent = formatPoints(data.spent);
+  $("sessions").textContent = data.sessions;
+
+  $("shop").innerHTML = rewards.map((r, i) => `
+    <div class="shop-item">
+      <div>
+        <div>${r.name}</div>
+        <div class="shop-price">${r.price} points</div>
+      </div>
+      <button class="buy-button"
+        data-index="${i}"
+        ${data.balance < r.price ? "disabled" : ""}>
+        Acheter
+      </button>
+    </div>
+  `).join("");
+
+  $("history").innerHTML = data.history.length
+    ? data.history.map(item =>
+        `<div class="history-item">${item}</div>`
+      ).join("")
+    : '<p class="empty">Aucune activité pour le moment.</p>';
+}
+
+function updateTimer() {
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+
+  $("time").textContent =
+    String(mins).padStart(2, "0") + ":" +
+    String(secs).padStart(2, "0");
+}
+
+function selectDuration(min) {
+  if (running) return;
+
+  duration = min;
+  remaining = min * 60;
+
+  document.querySelectorAll("[data-min]").forEach(b => {
+    b.classList.toggle(
+      "selected",
+      Number(b.dataset.min) === min
+    );
+  });
+
+  $("timerMessage").textContent =
+    "Tu gagneras " + formatPoints(min * RATE) + " points !";
+
+  $("gain").textContent = "";
+  updateTimer();
+}
+
+function finishSession() {
+  clearInterval(interval);
+  interval = null;
+  running = false;
+  remaining = 0;
+
+  const points = Number((duration * RATE).toFixed(1));
+
+  data.balance = Number((data.balance + points).toFixed(1));
+  data.earned = Number((data.earned + points).toFixed(1));
+  data.sessions++;
+
+  const now = new Date().toLocaleString("fr-FR");
+
+  data.history.unshift(
+    "⏳ " + duration + " min de travail — +" +
+    formatPoints(points) + " points · " + now
+  );
+
+  save();
+  render();
+  updateTimer();
+
+  $("timerMessage").textContent = "Session terminée ! Bravo ! 🤎";
+  $("gain").textContent = "+" + formatPoints(points) + " points gagnés !";
+  $("start").textContent = "Recommencer";
+}
+
+function tick() {
+  remaining = Math.max(
+    0,
+    Math.ceil((endTime - Date.now()) / 1000)
+  );
+
+  updateTimer();
+
+  if (remaining <= 0) finishSession();
+}
+
+function startTimer() {
+  if (running) return;
+
+  if (remaining <= 0) {
+    remaining = duration * 60;
+  }
+
+  running = true;
+  endTime = Date.now() + remaining * 1000;
+
+  $("timerMessage").textContent =
+    "Concentre-toi, tu peux le faire !";
+
+  $("start").textContent = "En cours...";
+
+  tick();
+  if (running) interval = setInterval(tick, 250);
+}
+
+function stopTimer() {
+  if (!running) return;
+
+  clearInterval(interval);
+  interval = null;
+  running = false;
+  endTime = null;
+
+  $("timerMessage").textContent =
+    "Chrono arrêté. Aucun point ajouté.";
+
+  $("start").textContent = "Reprendre";
+  updateTimer();
+}
+
+$("presets").addEventListener("click", e => {
+  const btn = e.target.closest("[data-min]");
+  if (btn) selectDuration(Number(btn.dataset.min));
+});
+
+$("customButton").addEventListener("click", () => {
+  const min = Number($("custom").value);
+
+  if (min >= 1 && min <= 300 && Number.isInteger(min)) {
+    selectDuration(min);
+    document.querySelectorAll("[data-min]").forEach(b =>
+      b.classList.remove("selected")
+    );
+  } else {
+    alert("Choisis une durée entre 1 et 300 minutes.");
+  }
+});
+
+$("start").addEventListener("click", startTimer);
+$("stop").addEventListener("click", stopTimer);
+
+$("shop").addEventListener("click", e => {
+  const btn = e.target.closest("[data-index]");
+  if (!btn) return;
+
+  const reward = rewards[Number(btn.dataset.index)];
+
+  if (data.balance < reward.price) return;
+
+  if (!confirm(
+    "Acheter " + reward.name + " pour " +
+    reward.price + " points ?"
+  )) return;
+
+  data.balance = Number(
+    (data.balance - reward.price).toFixed(1)
+  );
+
+  data.spent = Number(
+    (data.spent + reward.price).toFixed(1)
+  );
+
+  const now = new Date().toLocaleString("fr-FR");
+
+  data.history.unshift(
+    "🛍️ Achat : " + reward.name + " — -" +
+    reward.price + " points · " + now
+  );
+
+  save();
+  render();
+});
+
+selectDuration(5);
+render();
+</script>
+</body>
+</html>
+
