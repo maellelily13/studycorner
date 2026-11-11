@@ -111,6 +111,11 @@ button {
   font-size: 14px;
 }
 
+button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
 button.selected {
   background: var(--terracotta);
   color: white;
@@ -140,6 +145,29 @@ input {
   text-align: center;
 }
 
+.reward-form {
+  background: #f8f1e9;
+  border-radius: 13px;
+  padding: 14px;
+  margin-top: 17px;
+}
+
+.reward-form input {
+  width: 100%;
+  margin: 5px 0 10px;
+  text-align: left;
+}
+
+.reward-form .price-input {
+  max-width: 130px;
+}
+
+.reward-form button {
+  background: var(--brown);
+  color: white;
+  width: 100%;
+}
+
 .shop-item {
   display: flex;
   align-items: center;
@@ -157,9 +185,25 @@ input {
   margin-top: 4px;
 }
 
-.buy-button:disabled {
-  opacity: .4;
-  cursor: not-allowed;
+.shop-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.edit-button, .delete-button {
+  padding: 8px 9px;
+  font-size: 12px;
+}
+
+.delete-button {
+  background: #f1dfdc;
+}
+
+.buy-button {
+  white-space: nowrap;
 }
 
 .stats {
@@ -195,6 +239,19 @@ footer {
   padding-top: 12px;
 }
 
+@media (max-width: 420px) {
+  .shop-item {
+    align-items: flex-start;
+  }
+
+  .shop-actions {
+    max-width: 150px;
+  }
+
+  .time {
+    font-size: 50px;
+  }
+}
 </style>
 </head>
 
@@ -231,6 +288,7 @@ footer {
   </p>
 
   <div class="time" id="time">05:00</div>
+
   <div class="small" id="timerMessage">
     Choisis ta durée et lance ton chrono !
   </div>
@@ -239,11 +297,25 @@ footer {
   <button class="stop-button" id="stop">Arrêter</button>
 
   <p class="small" id="gain"></p>
+  <p class="small" id="soundStatus">🔔 Le son sera activé au démarrage du chrono.</p>
 </section>
 
 <section class="card">
   <h2>🛍️ Ma petite boutique</h2>
+
   <div id="shop"></div>
+
+  <div class="reward-form">
+    <h3>✨ Ajouter un cadeau</h3>
+
+    <label for="rewardName" class="small">Nom du cadeau</label>
+    <input type="text" id="rewardName" placeholder="Ex : 🍿 Soirée film" maxlength="60">
+
+    <label for="rewardPrice" class="small">Prix en points</label>
+    <input class="price-input" type="number" id="rewardPrice" min="0.1" max="100000" step="0.1" placeholder="Ex : 25">
+
+    <button id="addReward">Ajouter à ma boutique</button>
+  </div>
 </section>
 
 <section class="card">
@@ -280,7 +352,7 @@ footer {
 <script>
 const RATE = 0.6;
 
-const rewards = [
+const defaultRewards = [
   { name: "🍬 1 snack", price: 5 },
   { name: "💆 Massage des mains", price: 15 },
   { name: "☕ 15 min de pause", price: 30 },
@@ -298,20 +370,111 @@ let data = JSON.parse(
   history: []
 };
 
+// On conserve les anciennes données et on ajoute
+// les récompenses par défaut si elles n'existent pas encore.
+if (!Array.isArray(data.rewards)) {
+  data.rewards = defaultRewards.map(r => ({ ...r }));
+}
+
+let rewards = data.rewards;
+
 let duration = 5;
 let remaining = 300;
 let endTime = null;
 let interval = null;
 let running = false;
 
+let audioContext = null;
+let soundEnabled = false;
+
 const $ = id => document.getElementById(id);
 
 function save() {
+  data.rewards = rewards;
   localStorage.setItem("studyCorner", JSON.stringify(data));
 }
 
 function formatPoints(n) {
   return Number(n.toFixed(1)).toString().replace(".", ",");
+}
+
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
+// Active le son à partir du clic sur Commencer.
+function enableSound() {
+  const AudioContextClass =
+    window.AudioContext || window.webkitAudioContext;
+
+  if (!AudioContextClass) {
+    $("soundStatus").textContent =
+      "⚠️ Le son n'est pas disponible sur ce navigateur.";
+    return;
+  }
+
+  try {
+    if (!audioContext) {
+      audioContext = new AudioContextClass();
+    }
+
+    if (audioContext.state === "suspended") {
+      audioContext.resume();
+    }
+
+    soundEnabled = true;
+
+    $("soundStatus").textContent =
+      "🔔 Sonnerie activée pour la fin du chrono !";
+  } catch (error) {
+    soundEnabled = false;
+
+    $("soundStatus").textContent =
+      "⚠️ Impossible d'activer le son.";
+  }
+}
+
+// Joue une petite mélodie à la fin du minuteur.
+function playFinishSound() {
+  if (!soundEnabled || !audioContext) return;
+
+  try {
+    if (audioContext.state !== "running") return;
+
+    const notes = [660, 784, 988, 784, 988];
+
+    notes.forEach((frequency, index) => {
+      const oscillator = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      const start = audioContext.currentTime + index * 0.22;
+
+      oscillator.type = "sine";
+      oscillator.frequency.value = frequency;
+
+      gain.gain.setValueAtTime(0.001, start);
+      gain.gain.exponentialRampToValueAtTime(0.2, start + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.19);
+
+      oscillator.connect(gain);
+      gain.connect(audioContext.destination);
+
+      oscillator.start(start);
+      oscillator.stop(start + 0.2);
+    });
+
+    if ("vibrate" in navigator) {
+      navigator.vibrate([150, 100, 150]);
+    }
+  } catch (error) {
+    console.log("Sonnerie indisponible :", error);
+  }
 }
 
 function render() {
@@ -323,20 +486,31 @@ function render() {
   $("shop").innerHTML = rewards.map((r, i) => `
     <div class="shop-item">
       <div>
-        <div>${r.name}</div>
-        <div class="shop-price">${r.price} points</div>
+        <div>${escapeHTML(r.name)}</div>
+        <div class="shop-price">${formatPoints(r.price)} points</div>
       </div>
-      <button class="buy-button"
-        data-index="${i}"
-        ${data.balance < r.price ? "disabled" : ""}>
-        Acheter
-      </button>
+
+      <div class="shop-actions">
+        <button class="buy-button"
+          data-buy="${i}"
+          ${data.balance < r.price ? "disabled" : ""}>
+          Acheter
+        </button>
+
+        <button class="edit-button" data-edit="${i}">
+          Modifier
+        </button>
+
+        <button class="delete-button" data-delete="${i}">
+          Supprimer
+        </button>
+      </div>
     </div>
   `).join("");
 
   $("history").innerHTML = data.history.length
     ? data.history.map(item =>
-        `<div class="history-item">${item}</div>`
+        `<div class="history-item">${escapeHTML(item)}</div>`
       ).join("")
     : '<p class="empty">Aucune activité pour le moment.</p>';
 }
@@ -367,6 +541,8 @@ function selectDuration(min) {
     "Tu gagneras " + formatPoints(min * RATE) + " points !";
 
   $("gain").textContent = "";
+  $("start").textContent = "Commencer";
+
   updateTimer();
 }
 
@@ -375,6 +551,8 @@ function finishSession() {
   interval = null;
   running = false;
   remaining = 0;
+
+  playFinishSound();
 
   const points = Number((duration * RATE).toFixed(1));
 
@@ -412,6 +590,8 @@ function tick() {
 function startTimer() {
   if (running) return;
 
+  enableSound();
+
   if (remaining <= 0) {
     remaining = duration * 60;
   }
@@ -425,7 +605,10 @@ function startTimer() {
   $("start").textContent = "En cours...";
 
   tick();
-  if (running) interval = setInterval(tick, 250);
+
+  if (running) {
+    interval = setInterval(tick, 250);
+  }
 }
 
 function stopTimer() {
@@ -453,6 +636,7 @@ $("customButton").addEventListener("click", () => {
 
   if (min >= 1 && min <= 300 && Number.isInteger(min)) {
     selectDuration(min);
+
     document.querySelectorAll("[data-min]").forEach(b =>
       b.classList.remove("selected")
     );
@@ -464,36 +648,119 @@ $("customButton").addEventListener("click", () => {
 $("start").addEventListener("click", startTimer);
 $("stop").addEventListener("click", stopTimer);
 
-$("shop").addEventListener("click", e => {
-  const btn = e.target.closest("[data-index]");
-  if (!btn) return;
+// Ajouter un cadeau personnalisé.
+$("addReward").addEventListener("click", () => {
+  const name = $("rewardName").value.trim();
+  const price = Number($("rewardPrice").value);
 
-  const reward = rewards[Number(btn.dataset.index)];
+  if (!name) {
+    alert("Écris le nom de ton cadeau !");
+    return;
+  }
 
-  if (data.balance < reward.price) return;
+  if (!Number.isFinite(price) || price <= 0 || price > 100000) {
+    alert("Choisis un prix supérieur à 0.");
+    return;
+  }
 
-  if (!confirm(
-    "Acheter " + reward.name + " pour " +
-    reward.price + " points ?"
-  )) return;
+  rewards.push({
+    name: name,
+    price: Number(price.toFixed(1))
+  });
 
-  data.balance = Number(
-    (data.balance - reward.price).toFixed(1)
-  );
-
-  data.spent = Number(
-    (data.spent + reward.price).toFixed(1)
-  );
-
-  const now = new Date().toLocaleString("fr-FR");
-
-  data.history.unshift(
-    "🛍️ Achat : " + reward.name + " — -" +
-    reward.price + " points · " + now
-  );
+  $("rewardName").value = "";
+  $("rewardPrice").value = "";
 
   save();
   render();
+});
+
+// Modifier, acheter ou supprimer un cadeau.
+$("shop").addEventListener("click", e => {
+  const buyButton = e.target.closest("[data-buy]");
+  const editButton = e.target.closest("[data-edit]");
+  const deleteButton = e.target.closest("[data-delete]");
+
+  if (buyButton) {
+    const index = Number(buyButton.dataset.buy);
+    const reward = rewards[index];
+
+    if (!reward || data.balance < reward.price) return;
+
+    if (!confirm(
+      "Acheter " + reward.name + " pour " +
+      formatPoints(reward.price) + " points ?"
+    )) return;
+
+    data.balance = Number(
+      (data.balance - reward.price).toFixed(1)
+    );
+
+    data.spent = Number(
+      (data.spent + reward.price).toFixed(1)
+    );
+
+    const now = new Date().toLocaleString("fr-FR");
+
+    data.history.unshift(
+      "🛍️ Achat : " + reward.name + " — -" +
+      formatPoints(reward.price) + " points · " + now
+    );
+
+    save();
+    render();
+    return;
+  }
+
+  if (editButton) {
+    const index = Number(editButton.dataset.edit);
+    const reward = rewards[index];
+
+    if (!reward) return;
+
+    const newName = prompt("Nouveau nom du cadeau :", reward.name);
+    if (newName === null) return;
+
+    if (!newName.trim()) {
+      alert("Le nom ne peut pas être vide.");
+      return;
+    }
+
+    const newPrice = prompt("Nouveau prix en points :", reward.price);
+    if (newPrice === null) return;
+
+    const price = Number(newPrice.replace(",", "."));
+
+    if (!Number.isFinite(price) || price <= 0 || price > 100000) {
+      alert("Choisis un prix supérieur à 0.");
+      return;
+    }
+
+    rewards[index] = {
+      name: newName.trim(),
+      price: Number(price.toFixed(1))
+    };
+
+    save();
+    render();
+    return;
+  }
+
+  if (deleteButton) {
+    const index = Number(deleteButton.dataset.delete);
+    const reward = rewards[index];
+
+    if (!reward) return;
+
+    if (!confirm("Supprimer " + reward.name + " de ta boutique ?")) {
+      return;
+    }
+
+    rewards.splice(index, 1);
+
+    save();
+    render();
+  }
 });
 
 selectDuration(5);
@@ -501,4 +768,3 @@ render();
 </script>
 </body>
 </html>
-
